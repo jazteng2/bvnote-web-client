@@ -1,18 +1,15 @@
 import Bible from './components/Bible';
-import VideoPlayer from './components/VideoPlayer';
+// import VideoPlayer from './components/VideoPlayer';
 export default function WorkSpace() {
     return (
-        <main>
-            <section className="left">
-                <VideoPlayer/>
+        <main className='workspace margin-10'>
+            <section className="workspace-left">
+                <section className='videoPlayer'></section>
                 <Bible/>
             </section>
-            <section className="middle"></section>
-            <section className="right">
-                <section className="collections"></section>
-                <section className="resources"></section>
-                <section className="playlists"></section>
-                <section className="unlisted"></section>
+            <section className="workspace-middle">
+            </section>
+            <section className="workspace-right">
             </section>
         </main>
     );  
