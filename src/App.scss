@@ -100,10 +100,12 @@
 
     .verses-item:hover {
       background-color: rgb(164, 193, 251);
+      cursor: pointer;
     }
 
     .verses-current {
       background-color: rgb(225, 235, 255);
+      cursor: pointer;
     }
 
   }
