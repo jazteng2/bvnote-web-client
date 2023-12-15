@@ -1,4 +1,8 @@
-* { font-size: 16px; font-family: 'Nunito', sans-serif; }
+* {
+  font-size: 16px;
+  font-family: 'Nunito', sans-serif;
+}
+
 // Workspace
 .workspace {
   display: grid;
@@ -82,19 +86,24 @@
       width: 100%;
     }
 
-    .verses-item {
+    .verses-item,
+    .verses-current {
       padding: 10px 10px 10px 10px;
       border-bottom: 1px solid rgb(183, 183, 183);
 
-      span { 
-        color: rgb(255, 150, 58); 
+      span {
+        color: rgb(255, 150, 58);
         font-weight: bold;
         margin-right: 10px;
       }
+    }
 
-      &:hover {
-        background: rgb(225, 235, 255);
-      }
+    .verses-item:hover {
+      background-color: rgb(164, 193, 251);
+    }
+
+    .verses-current {
+      background-color: rgb(225, 235, 255);
     }
 
   }
