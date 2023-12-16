@@ -15,10 +15,15 @@ export default function Verses({ verses, currentVerse }) {
             </div>
         });
 
+    // return [
+    //     <div className="verses" ref={verseDisplay}> {verses.length === 0
+    //         ? <div className="verses-placeholder">Verses displays here</div> : verseItems
+    //     } </div>,
+    //     verse,
+    //     verseDisplay
+    // ];
+
     return [
-        <div className="verses" ref={verseDisplay}> {verses.length === 0
-            ? <div className="verses-placeholder">Verses displays here</div> : verseItems
-        } </div>,
         verse,
         verseDisplay
     ];

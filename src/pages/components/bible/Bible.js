@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from "react";
 import Verses from "./Verses";
+
 /* 
     Considerations:
         - expensive re-renders
@@ -7,71 +8,48 @@ import Verses from "./Verses";
         - security
         - input validation    
 */
-const initState = {
-    verseInput: { bookId: '', bookName: '', chapterNo: null, verseNo: null },
-    verses: [],
-    abbrevs: [],
-    currentVerse: {}
-};
-
-function reducer(state, action) {
-    switch (action.type) {
-        case 'verseInput': return { ...state, verseInput: action.verseInput };
-        case 'verses': return { ...state, verses: action.verses };
-        case 'abbrevs': return { ...state, abbrevs: action.abbrevs };
-        case 'currentVerse': return { ...state, currentVerse: action.currentVerse };
-        default: return state;
-    }
-}
 
 export default function Bible() {
     // States
     const [currentInput, setCurrentInput] = useState({});
-    const [state, dispatch] = useReducer(reducer, initState);
-    const [verseItems, currentVerseRef, displayRef] = Verses({ verses: state.verses, currentVerse: state.currentVerse });
+    const [prevInput, setPrevInput] = useState({});
+    const [verses, setVerses] = useState([]);
+    const [abbrevs, setAbbrevs] = useState([]);
+    const [currentVerse, setCurrentVerse] = useState({});
+    const [currentVerseRef, displayRef] = Verses({ verses: verses, currentVerse: currentVerse });
 
     useEffect(() => {
-        if (currentInput.validInput) {
-            // SET STATE: currentVerse
-            const currentVerse = state.currentVerse;
-            const verseInput = state.verseInput;
-            const verses = state.verses;
-            if (verses.length !== 0 && verseInput.verse !== 0 && Object.keys(currentVerse) !== 0) {
-                if (currentVerse.verseNo !== verseInput.verseNo || currentVerse.chapterNo !== verseInput.chapterNo) {
-                    dispatch({ type: 'currentVerse', currentVerse: verses.find(v => v.verseNo === verseInput.verseNo) });
-                }
-            }
+        if (abbrevs.length > 0) return;
 
-            // scroll verse into view
-            if (!Object.is(displayRef.current, null) && !Object.is(currentVerseRef.current, null)) {
-                displayRef.current.scrollTop = currentVerseRef.current.offsetTop;
-            }
-        }
-
-        // SET STATE: abbrevs
-        if (state.abbrevs.length === 0) {
-            fetch('https://localhost:7270/v1/books/abbreviations')
-                .then(res => res.json())
-                .then(data => dispatch({ type: 'abbrevs', abbrevs: data }))
-                .catch(console.error);
-        }
-    }, [state, currentVerseRef, displayRef, currentInput]);
+        fetch('https://localhost:7270/v1/books/abbreviations')
+            .then(res => res.json())
+            .then(data => setAbbrevs(data))
+            .catch(console.error);
+    }, [])
 
     // form handlers
     async function handleSubmit(e) {
         e.preventDefault();
-        if (currentInput.validInput) {
-            // SET STATE: verseInput
-            dispatch({ type: 'verseInput', verseInput: currentInput });
 
-            // SET STATE: verses
-            dispatch({
-                type: 'verses',
-                verses: await fetch(`https://localhost:7270/v1/books/${currentInput.bookId}/verses?chapterNo=${currentInput.chapterNo}`)
-                    .then(res => res.json())
-                    .catch(console.error)
-            });
+        if (!currentInput.validInput) return;
+
+        const verses = await fetch(`https://localhost:7270/v1/books/${currentInput.bookId}/verses?chapterNo=${currentInput.chapterNo}`)
+            .then(res => res.json())
+            .catch(console.error)
+
+        // SET STATE: currentVerse
+        if (verses.length !== 0 && prevInput.verse !== 0 && Object.keys(currentVerse) !== 0) {
+            if (currentVerse.verseNo !== prevInput.verseNo || currentVerse.chapterNo !== prevInput.chapterNo) {
+                setCurrentVerse(verses.find(v => v.verseNo === prevInput.verseNo));
+            }
         }
+
+        // scroll verse into view
+        if (!Object.is(displayRef.current, null) && !Object.is(currentVerseRef.current, null)) {
+            displayRef.current.scrollTop = currentVerseRef.current.offsetTop;
+        }
+
+        setVerses(verses);
     }
 
     function handleChange(e) {
@@ -101,7 +79,7 @@ export default function Bible() {
         }
 
         // check abbreviations exist
-        const abbrev = state.abbrevs.find(a => a.abbreviation.toLowerCase() === bookName());
+        const abbrev = abbrevs.find(a => a.abbreviation.toLowerCase() === bookName());
         if (typeof abbrev === 'undefined') {
             console.log('abbrev is does not exist');
             validInput = false;
@@ -109,7 +87,6 @@ export default function Bible() {
 
         // SET STATE: currentInput
         if (validInput) {
-            console.log('valid input');
             setCurrentInput({
                 ...currentInput,
                 bookId: abbrev.bookId,
@@ -126,6 +103,29 @@ export default function Bible() {
             <input type="text" onChange={handleChange} name="verseInput" placeholder="Verse Search: ctrl + /" />
             <input type="submit" id="submit" />
         </form>
-        {verseItems}
+        <VersesDisplay verses={verses} currentVerse={currentVerse} />
     </section>;
+}
+
+function VersesDisplay({ verses, currentVerse }) {
+    return (
+        <div className="verses">
+            {
+                verses.length === 0 && (
+                    <div className="verses-placeholder">Verses displays here</div>
+                )
+            }
+            {
+                verses?.map((value, index) => (
+                    <div
+                        className={value.verseId === currentVerse.verseId ? "verses-current" : "verses-item"}
+                        key={value.verseId}
+                    >
+                        <span>{index + 1}</span>
+                        {value.content}
+                    </div>
+                ))
+            }
+        </div>
+    )
 }
