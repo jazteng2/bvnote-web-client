@@ -1,4 +1,4 @@
-import Bible from './components/Bible';
+import Bible from './components/bible/Bible';
 // import VideoPlayer from './components/VideoPlayer';
 export default function WorkSpace() {
     return (
