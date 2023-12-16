@@ -50,11 +50,29 @@ function Verses({ verses, currentVerse }) {
 
 export default function Bible() {
     // States
-    const [currentInput, setCurrentInput] = useState({ bookName: '', chapterNo: 0, verseNo: 0 });
+    const [currentInput, setCurrentInput] = useState({});
     const [state, dispatch] = useReducer(reducer, initState);
     const [verseItems, currentVerseRef, displayRef] = Verses({ verses: state.verses, currentVerse: state.currentVerse });
 
     useEffect(() => {
+        if (currentInput.validInput) {
+            console.log(currentInput);
+            // SET STATE: currentVerse
+            const currentVerse = state.currentVerse;
+            const verseInput = state.verseInput;
+            const verses = state.verses;
+            if (verses.length !== 0 && verseInput.verse !== 0 && Object.keys(currentVerse) !== 0) {
+                if (currentVerse.verseNo !== verseInput.verseNo || currentVerse.chapterNo !== verseInput.chapterNo) {
+                    dispatch({ type: 'currentVerse', currentVerse: verses.find(v => v.verseNo === verseInput.verseNo) });
+                }
+            }
+
+            // scroll verse into view
+            if (!Object.is(displayRef.current, null) && !Object.is(currentVerseRef.current, null)) {
+                displayRef.current.scrollTop = currentVerseRef.current.offsetTop;
+            }
+        }
+
         // SET STATE: abbrevs
         if (state.abbrevs.length === 0) {
             fetch('https://localhost:7270/v1/books/abbreviations')
@@ -62,44 +80,70 @@ export default function Bible() {
                 .then(data => dispatch({ type: 'abbrevs', abbrevs: data }))
                 .catch(console.error);
         }
-
-        // SET STATE: currentVerse
-        const currentVerse = state.currentVerse;
-        const verseInput = state.verseInput;
-        const verses = state.verses;
-        if (verses.length !== 0 && verseInput.verse !== 0 && Object.keys(currentVerse) !== 0) {
-            if (currentVerse.verseNo !== verseInput.verseNo || currentVerse.chapterNo !== verseInput.chapterNo) {
-                dispatch({ type: 'currentVerse', currentVerse: verses.find(v => v.verseNo === verseInput.verseNo) });
-            }
-        }
-
-        // scroll verse into view
-        if (!Object.is(displayRef.current, null) && !Object.is(currentVerseRef.current, null)) {
-            displayRef.current.scrollTop = currentVerseRef.current.offsetTop;
-        }
-
-    }, [state, currentVerseRef, displayRef]);
+    }, [state, currentVerseRef, displayRef, currentInput]);
 
     // form handlers
     async function handleSubmit(e) {
         e.preventDefault();
-        // SET STATE: verseInput
-        dispatch({ type: 'verseInput', verseInput: currentInput });
+        if (currentInput.validInput) {
+            // SET STATE: verseInput
+            dispatch({ type: 'verseInput', verseInput: currentInput });
 
-        // SET STATE: verses
-        const abbrev = state.abbrevs.find(a => a.abbreviation.toLowerCase() === currentInput.bookName);
-        dispatch({
-            type: 'verses', 
-            verses: await fetch(`https://localhost:7270/v1/books/${abbrev.bookId}/verses?chapterNo=${currentInput.chapterNo}`)
-                .then(res => res.json())
-                .catch(console.error)
-        });
+            // SET STATE: verses
+            dispatch({
+                type: 'verses',
+                verses: await fetch(`https://localhost:7270/v1/books/${currentInput.bookId}/verses?chapterNo=${currentInput.chapterNo}`)
+                    .then(res => res.json())
+                    .catch(console.error)
+            });
+        }
     }
 
     function handleChange(e) {
-        // STATE: currentInput
+        let validInput = true;
         const input = e.target.value.toLowerCase().split(/\s+/);
-        setCurrentInput({ bookName: input[0], chapterNo: Number(input[1]), verseNo: Number(input[2]) });
+        const inputLength = input.length;
+        const verseNo = input[inputLength - 1];
+        const chapterNo = input[inputLength - 2];
+        const bookName = () => {
+            if (inputLength === 3) {
+                return input[0];
+            }
+            if (inputLength === 4) {
+                return `${input[0]} ${input[1]}`;
+            }
+            return `${input[0]} ${input[1]} ${input[2]}`;
+        };
+
+        // check empty
+        if (bookName === '' || chapterNo === '' || verseNo === '') {
+            validInput = false;
+        }
+
+        // check last two values are number & not zero
+        else if (isNaN(chapterNo) || isNaN(verseNo)) {
+            validInput = false;
+        }
+
+        // check abbreviations exist
+        const abbrev = state.abbrevs.find(a => a.abbreviation.toLowerCase() === bookName());
+        if (typeof abbrev === 'undefined') {
+            console.log('abbrev is does not exist');
+            validInput = false;
+        }
+
+        // SET STATE: currentInput
+        if (validInput) {
+            console.log('valid input');
+            setCurrentInput({
+                ...currentInput,
+                bookId: abbrev.bookId,
+                bookName: bookName(),
+                chapterNo: Number(input[1]),
+                verseNo: Number(input[2]),
+                validInput: true
+            });
+        }
     }
 
     return <section className="bible">
